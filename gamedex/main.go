@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
+
+// nombreDeJeux est le nombre de jeux dans la mini API.
+const nombreDeJeux = 12
 
 func main() {
 	// Le routeur qui associe chaque route à une fonction
@@ -35,6 +39,20 @@ func listeJeux(w http.ResponseWriter, r *http.Request) {
 
 // detailJeu affiche la fiche d'un jeu à partir de son identifiant.
 func detailJeu(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	fmt.Fprintf(w, "Fiche du jeu %s\n", id)
+	// On lit l'identifiant dans l'URL et on le transforme en nombre
+	id, err := strconv.Atoi(r.PathValue("id"))
+
+	// Pas un nombre, ou un nombre plus petit que 1 : requête invalide (400)
+	if err != nil || id < 1 {
+		http.Error(w, "identifiant invalide", http.StatusBadRequest)
+		return
+	}
+
+	// Il n'y a que 12 jeux : au-delà, le jeu n'existe pas (404)
+	if id > nombreDeJeux {
+		http.NotFound(w, r)
+		return
+	}
+
+	fmt.Fprintf(w, "Fiche du jeu %d\n", id)
 }

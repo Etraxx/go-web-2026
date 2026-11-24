@@ -1,5 +1,6 @@
-// GameDex : premier serveur web du cours (mini TP 2).
-// Lancer depuis le dossier gamedex : go run . (ou go run . -port 9090)
+// GameDex : serveur web du cours (mini TP 2), qui appelle la mini API (mini TP 3).
+// Lancer d'abord la mini API (go run ./api depuis la racine du dépôt),
+// puis depuis le dossier gamedex : go run . (ou go run . -port 9090)
 package main
 
 import (
@@ -9,6 +10,26 @@ import (
 	"net/http"
 	"strconv"
 )
+
+// Game est un jeu, tel que la mini API le renvoie en JSON.
+type Game struct {
+	ID     int      `json:"id"`
+	Name   string   `json:"name"`
+	Year   int      `json:"year"`
+	Studio string   `json:"studio"`
+	Genres []string `json:"genres"`
+}
+
+// Tournament est un tournoi, tel que la mini API le renvoie en JSON.
+type Tournament struct {
+	ID     int     `json:"id"`
+	GameID int     `json:"gameId"`
+	Name   string  `json:"name"`
+	City   string  `json:"city"`
+	Date   string  `json:"date"`
+	Lat    float64 `json:"lat"`
+	Lng    float64 `json:"lng"`
+}
 
 // nombreDeJeux est le nombre de jeux dans la mini API.
 const nombreDeJeux = 12

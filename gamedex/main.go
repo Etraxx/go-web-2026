@@ -19,6 +19,10 @@ func main() {
 	mux.HandleFunc("GET /jeux", listeJeux)
 	mux.HandleFunc("GET /jeux/{id}", detailJeu)
 
+	// Les fichiers du dossier static (le CSS)
+	fs := http.FileServer(http.Dir("static"))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+
 	// Démarrage du serveur
 	fmt.Println("Serveur sur http://localhost:8080")
 	err := http.ListenAndServe(":8080", mux)

@@ -63,6 +63,20 @@ func main() {
 	port := flag.String("port", "8080", "port d'écoute")
 	flag.Parse()
 
+	// On charge les jeux et les tournois depuis la mini API
+	jeux, err := FetchGames()
+	if err != nil {
+		log.Fatalf("Impossible de charger les jeux : %v", err)
+	}
+	tournois, err := FetchTournaments()
+	if err != nil {
+		log.Fatalf("Impossible de charger les tournois : %v", err)
+	}
+
+	// On affiche chaque jeu avec son année et son nombre de tournois
+	byGame := tournoisParJeu(tournois)
+	afficherJeux(jeux, byGame)
+
 	// Le routeur qui associe chaque route à une fonction
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", accueil)
@@ -75,7 +89,7 @@ func main() {
 
 	// Démarrage du serveur sur le port choisi
 	fmt.Println("Serveur sur http://localhost:" + *port)
-	err := http.ListenAndServe(":"+*port, mux)
+	err = http.ListenAndServe(":"+*port, mux)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -124,6 +138,24 @@ func FetchTournaments() ([]Tournament, error) {
 	var tournois []Tournament
 	err := lireJSON("/api/tournaments", &tournois)
 	return tournois, err
+}
+
+// tournoisParJeu range les tournois par jeu : la clé de la map est le GameID.
+func tournoisParJeu(tournois []Tournament) map[int][]Tournament {
+	byGame := map[int][]Tournament{}
+	for _, t := range tournois {
+		byGame[t.GameID] = append(byGame[t.GameID], t)
+	}
+	return byGame
+}
+
+// afficherJeux écrit dans le terminal une ligne par jeu : nom, année et nombre de tournois.
+func afficherJeux(jeux []Game, byGame map[int][]Tournament) {
+	fmt.Println("Jeux chargés depuis la mini API :")
+	for _, g := range jeux {
+		titre := fmt.Sprintf("%s (%d)", g.Name, g.Year)
+		fmt.Printf("  %-28s %d tournoi(s)\n", titre, len(byGame[g.ID]))
+	}
 }
 
 // lireJSON appelle la mini API sur le chemin donné et range le JSON reçu dans donnees.

@@ -15,12 +15,24 @@ Vous lancerez ensuite votre serveur depuis ce dossier (`go run .`, puis `go run 
 
 ## Lancer GameDex
 
-Depuis la racine du dépôt :
+GameDex interroge la mini API au démarrage : il faut donc d'abord lancer la mini API, dans un
+premier terminal, depuis la racine du dépôt :
+
+```
+go run ./api
+```
+
+Puis, dans un second terminal, depuis la racine du dépôt :
 
 ```
 cd gamedex
 go run .
 ```
+
+Au démarrage, GameDex récupère les jeux (`/api/games`) et les tournois (`/api/tournaments`) et
+affiche dans le terminal chaque jeu avec son année et son nombre de tournois. Si la mini API est
+éteinte, trop lente (plus de 3 secondes) ou répond autre chose que 200, GameDex affiche un message
+d'erreur et s'arrête.
 
 Le serveur écoute sur http://localhost:8080. Pour choisir un autre port :
 

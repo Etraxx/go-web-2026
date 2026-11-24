@@ -69,3 +69,76 @@ curl.exe -i http://localhost:8081/api/games/abc
 
 999 est un nombre correct mais aucun jeu n'a cet id, donc 404 (la ressource n'existe pas).
 `abc` n'est pas un nombre, c'est ma requête qui est mal formée, donc 400.
+
+## 4. Les tournois du jeu 4
+
+```
+curl.exe -i http://localhost:8081/api/games/4/tournaments
+```
+
+Le jeu 4 est Street Fighter 6. Il a **4 tournois** :
+
+| id | Nom | Ville | Date |
+| --- | --- | --- | --- |
+| 4 | Fight Night Marseille | Marseille | 2027-01-30 |
+| 5 | Combo Breaker EU | Paris | 2027-03-20 |
+| 6 | Rising Dragon | Tokyo | 2027-08-07 |
+| 7 | Hadoken Series | Bruxelles | 2027-05-15 |
+
+Villes : Marseille, Paris, Tokyo et Bruxelles.
+
+## 5. Filtres sur /api/games
+
+```
+curl.exe -i "http://localhost:8081/api/games?genre=course"
+curl.exe -i "http://localhost:8081/api/games?year=2018"
+curl.exe -i "http://localhost:8081/api/games?q=cel"
+curl.exe -i "http://localhost:8081/api/games?q=CEL"
+curl.exe -i "http://localhost:8081/api/games?genre=course&year=2020"
+curl.exe -i "http://localhost:8081/api/games?q=cel&genre=course&year=2018"
+```
+
+| Filtre | Nombre de jeux | Jeux |
+| --- | --- | --- |
+| `genre=course` | 3 | Rocket League, Trackmania, Mario Kart 8 Deluxe |
+| `year=2018` | 2 | Celeste, Dead Cells |
+| `q=cel` | 2 | Celeste, Dead Cells (« cel » est aussi dans « Cells ») |
+| `q=CEL` | 2 | Celeste, Dead Cells (pas de différence avec les majuscules) |
+| `genre=course&year=2020` (cumulé) | 1 | Trackmania |
+| `q=cel&genre=course&year=2018` (cumulé) | 0 | `[]` : une liste vide, mais quand même un code 200 |
+
+Quand on cumule les filtres, un jeu doit respecter **tous** les filtres en même temps. Si rien ne
+correspond, l'API ne renvoie pas d'erreur : elle renvoie une liste vide avec un 200.
+
+## 6. /api/stats et la clé X-API-Key
+
+```
+curl.exe -i http://localhost:8081/api/stats
+curl.exe -i -H "X-API-Key: eleve" http://localhost:8081/api/stats
+curl.exe -i -H "X-API-Key: prof" http://localhost:8081/api/stats
+```
+
+| En-tête envoyé | Code | Réponse |
+| --- | --- | --- |
+| aucun | 401 Unauthorized | `{"error": "clé absente ou inconnue : ajoutez l'en-tête X-API-Key"}` |
+| `X-API-Key: eleve` | 403 Forbidden | `{"error": "clé reconnue, mais pas le droit de voir les statistiques"}` |
+| `X-API-Key: prof` | 200 OK | `{"games": 12, "tournaments": 20}` |
+
+J'ai aussi essayé une clé inventée (`X-API-Key: toto`) : c'est aussi un 401.
+
+Différence entre 401 et 403 : avec un 401, le serveur ne sait pas qui je suis (pas de clé ou clé
+inconnue), alors qu'avec un 403 il sait qui je suis mais je n'ai pas le droit d'accéder à la ressource.
+
+## 7. Bonus : /api/broken et /api/slow
+
+```
+curl.exe -i http://localhost:8081/api/broken
+curl.exe -s -o NUL -w "code=%{http_code} time_total=%{time_total}s" http://localhost:8081/api/slow
+Measure-Command { curl.exe -s -o NUL http://localhost:8081/api/slow }
+```
+
+- `/api/broken` répond toujours **500 Internal Server Error** avec `{"error": "panne simulée"}`.
+  C'est une erreur du serveur, pas de ma requête.
+- `/api/slow` répond **200 OK** avec la liste des jeux, mais seulement après environ 5 secondes.
+  J'ai mesuré `time_total=5.000909s` avec curl.exe et `5,03 s` avec `Measure-Command`.
+  Ça servira plus tard pour tester les timeouts d'un client HTTP.

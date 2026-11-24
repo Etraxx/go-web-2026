@@ -13,6 +13,22 @@ import (
 // nombreDeJeux est le nombre de jeux dans la mini API.
 const nombreDeJeux = 12
 
+// pageAccueil est le HTML de la page d'accueil.
+const pageAccueil = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>GameDex</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <h1>GameDex</h1>
+  <p>Bienvenue sur GameDex, le catalogue de jeux vidéo et de leurs tournois.</p>
+  <p><a href="/jeux">Voir la liste des jeux</a></p>
+</body>
+</html>
+`
+
 func main() {
 	// Option -port pour choisir le port (8080 par défaut)
 	port := flag.String("port", "8080", "port d'écoute")
@@ -36,9 +52,10 @@ func main() {
 	}
 }
 
-// accueil affiche un message de bienvenue.
+// accueil affiche la page d'accueil en HTML, avec le CSS.
 func accueil(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Bienvenue sur GameDex !")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, pageAccueil)
 }
 
 // listeJeux affiche la liste des jeux (pour l'instant un simple texte).

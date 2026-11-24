@@ -1,8 +1,9 @@
 // GameDex : premier serveur web du cours (mini TP 2).
-// Lancer depuis le dossier gamedex : go run .
+// Lancer depuis le dossier gamedex : go run . (ou go run . -port 9090)
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,10 @@ import (
 const nombreDeJeux = 12
 
 func main() {
+	// Option -port pour choisir le port (8080 par défaut)
+	port := flag.String("port", "8080", "port d'écoute")
+	flag.Parse()
+
 	// Le routeur qui associe chaque route à une fonction
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", accueil)
@@ -23,9 +28,9 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
-	// Démarrage du serveur
-	fmt.Println("Serveur sur http://localhost:8080")
-	err := http.ListenAndServe(":8080", mux)
+	// Démarrage du serveur sur le port choisi
+	fmt.Println("Serveur sur http://localhost:" + *port)
+	err := http.ListenAndServe(":"+*port, mux)
 	if err != nil {
 		log.Fatal(err)
 	}

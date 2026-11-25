@@ -35,6 +35,12 @@ type Tournament struct {
 	Lng    float64 `json:"lng"`
 }
 
+// ListePage contient les données de la page liste.html.
+type ListePage struct {
+	Games []Game
+	Query string
+}
+
 // adresseAPI est l'adresse de la mini API.
 const adresseAPI = "http://localhost:8081"
 
@@ -76,9 +82,19 @@ func accueil(w http.ResponseWriter, r *http.Request) {
 	afficherPage(w, "accueil.html", nil)
 }
 
-// listeJeux affiche la liste des jeux (pour l'instant un simple texte).
+// listeJeux affiche tous les jeux de l'API avec le template liste.html.
 func listeJeux(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Liste des jeux")
+	// On demande les jeux à la mini API
+	jeux, err := FetchGames()
+	if err != nil {
+		log.Println("FetchGames :", err)
+		http.Error(w, "Le service de données est indisponible, réessayez plus tard", http.StatusBadGateway)
+		return
+	}
+
+	// On remplit la page avec les jeux
+	donnees := ListePage{Games: jeux}
+	afficherPage(w, "liste.html", donnees)
 }
 
 // detailJeu affiche la fiche d'un jeu à partir de son identifiant.

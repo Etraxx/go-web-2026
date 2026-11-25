@@ -1,0 +1,8 @@
+{{template "header" .}}
+    <h1>Les jeux</h1>
+    <ul class="jeux">
+      {{range .Games}}
+      <li><a href="/jeux/{{.ID}}">{{.Name}}</a> <span class="annee">({{.Year}})</span></li>
+      {{end}}
+    </ul>
+{{template "footer" .}}

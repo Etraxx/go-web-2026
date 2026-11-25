@@ -41,6 +41,12 @@ type ListePage struct {
 	Query string
 }
 
+// JeuPage contient les données de la page jeu.html.
+type JeuPage struct {
+	Game        Game
+	Tournaments []Tournament
+}
+
 // adresseAPI est l'adresse de la mini API.
 const adresseAPI = "http://localhost:8081"
 
@@ -114,7 +120,47 @@ func detailJeu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(w, "Fiche du jeu %d\n", id)
+	// On demande les jeux et les tournois à la mini API
+	jeux, err := FetchGames()
+	if err != nil {
+		log.Println("FetchGames :", err)
+		http.Error(w, "Le service de données est indisponible, réessayez plus tard", http.StatusBadGateway)
+		return
+	}
+	tournois, err := FetchTournaments()
+	if err != nil {
+		log.Println("FetchTournaments :", err)
+		http.Error(w, "Le service de données est indisponible, réessayez plus tard", http.StatusBadGateway)
+		return
+	}
+
+	// On cherche le jeu qui a cet identifiant
+	trouve := false
+	var jeu Game
+	for i := 0; i < len(jeux); i++ {
+		if jeux[i].ID == id {
+			jeu = jeux[i]
+			trouve = true
+		}
+	}
+
+	// Le jeu n'est pas dans la liste : 404
+	if !trouve {
+		http.NotFound(w, r)
+		return
+	}
+
+	// On garde seulement les tournois de ce jeu
+	var tournoisDuJeu []Tournament
+	for _, t := range tournois {
+		if t.GameID == id {
+			tournoisDuJeu = append(tournoisDuJeu, t)
+		}
+	}
+
+	// On remplit la page avec le jeu et ses tournois
+	donnees := JeuPage{Game: jeu, Tournaments: tournoisDuJeu}
+	afficherPage(w, "jeu.html", donnees)
 }
 
 // FetchGames récupère la liste des jeux auprès de la mini API.

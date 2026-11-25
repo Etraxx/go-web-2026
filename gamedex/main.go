@@ -1,4 +1,5 @@
-// GameDex : serveur web du cours (mini TP 2), qui appelle la mini API (mini TP 3).
+// GameDex : serveur web du cours (mini TP 2), qui appelle la mini API (mini TP 3)
+// et affiche ses pages avec des templates (mini TP 4).
 // Lancer d'abord la mini API (go run ./api depuis la racine du dépôt),
 // puis depuis le dossier gamedex : go run . (ou go run . -port 9090)
 package main
@@ -7,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -42,40 +44,14 @@ var client = &http.Client{Timeout: 3 * time.Second}
 // nombreDeJeux est le nombre de jeux dans la mini API.
 const nombreDeJeux = 12
 
-// pageAccueil est le HTML de la page d'accueil.
-const pageAccueil = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <title>GameDex</title>
-  <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-  <h1>GameDex</h1>
-  <p>Bienvenue sur GameDex, le catalogue de jeux vidéo et de leurs tournois.</p>
-  <p><a href="/jeux">Voir la liste des jeux</a></p>
-</body>
-</html>
-`
+// tmpl contient tous les fichiers du dossier templates, lus une seule fois au démarrage.
+// GameDex doit donc être lancé depuis le dossier gamedex.
+var tmpl = template.Must(template.ParseGlob("templates/*.html"))
 
 func main() {
 	// Option -port pour choisir le port (8080 par défaut)
 	port := flag.String("port", "8080", "port d'écoute")
 	flag.Parse()
-
-	// On charge les jeux et les tournois depuis la mini API
-	jeux, err := FetchGames()
-	if err != nil {
-		log.Fatalf("Impossible de charger les jeux : %v", err)
-	}
-	tournois, err := FetchTournaments()
-	if err != nil {
-		log.Fatalf("Impossible de charger les tournois : %v", err)
-	}
-
-	// On affiche chaque jeu avec son année et son nombre de tournois
-	byGame := tournoisParJeu(tournois)
-	afficherJeux(jeux, byGame)
 
 	// Le routeur qui associe chaque route à une fonction
 	mux := http.NewServeMux()
@@ -89,16 +65,15 @@ func main() {
 
 	// Démarrage du serveur sur le port choisi
 	fmt.Println("Serveur sur http://localhost:" + *port)
-	err = http.ListenAndServe(":"+*port, mux)
+	err := http.ListenAndServe(":"+*port, mux)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-// accueil affiche la page d'accueil en HTML, avec le CSS.
+// accueil affiche la page d'accueil avec le template accueil.html.
 func accueil(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, pageAccueil)
+	afficherPage(w, "accueil.html", nil)
 }
 
 // listeJeux affiche la liste des jeux (pour l'instant un simple texte).
@@ -140,24 +115,6 @@ func FetchTournaments() ([]Tournament, error) {
 	return tournois, err
 }
 
-// tournoisParJeu range les tournois par jeu : la clé de la map est le GameID.
-func tournoisParJeu(tournois []Tournament) map[int][]Tournament {
-	byGame := map[int][]Tournament{}
-	for _, t := range tournois {
-		byGame[t.GameID] = append(byGame[t.GameID], t)
-	}
-	return byGame
-}
-
-// afficherJeux écrit dans le terminal une ligne par jeu : nom, année et nombre de tournois.
-func afficherJeux(jeux []Game, byGame map[int][]Tournament) {
-	fmt.Println("Jeux chargés depuis la mini API :")
-	for _, g := range jeux {
-		titre := fmt.Sprintf("%s (%d)", g.Name, g.Year)
-		fmt.Printf("  %-28s %d tournoi(s)\n", titre, len(byGame[g.ID]))
-	}
-}
-
 // lireJSON appelle la mini API sur le chemin donné et range le JSON reçu dans donnees.
 // Elle n'affiche rien : en cas de problème, elle renvoie une erreur.
 func lireJSON(chemin string, donnees any) error {
@@ -179,4 +136,14 @@ func lireJSON(chemin string, donnees any) error {
 		return fmt.Errorf("JSON illisible : %w", err)
 	}
 	return nil
+}
+
+// afficherPage remplit le template demandé avec les données et l'envoie au navigateur.
+// Si le template plante, on écrit l'erreur dans le terminal.
+func afficherPage(w http.ResponseWriter, nom string, donnees any) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	err := tmpl.ExecuteTemplate(w, nom, donnees)
+	if err != nil {
+		log.Println("erreur du template", nom, ":", err)
+	}
 }

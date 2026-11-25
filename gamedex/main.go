@@ -13,6 +13,7 @@ import (
 	"strconv"
 
 	"gamedex/internal/api"
+	"gamedex/internal/catalog"
 )
 
 // ListePage contient les données de la page liste.html.
@@ -123,29 +124,15 @@ func detailJeu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// On cherche le jeu qui a cet identifiant
-	trouve := false
-	var jeu api.Game
-	for i := 0; i < len(jeux); i++ {
-		if jeux[i].ID == id {
-			jeu = jeux[i]
-			trouve = true
-		}
-	}
-
-	// Le jeu n'est pas dans la liste : 404
+	// On cherche le jeu qui a cet identifiant : s'il n'existe pas, 404
+	jeu, trouve := catalog.FindGame(jeux, id)
 	if !trouve {
 		afficherErreur(w, http.StatusNotFound, "Ce jeu n'existe pas.")
 		return
 	}
 
 	// On garde seulement les tournois de ce jeu
-	var tournoisDuJeu []api.Tournament
-	for _, t := range tournois {
-		if t.GameID == id {
-			tournoisDuJeu = append(tournoisDuJeu, t)
-		}
-	}
+	tournoisDuJeu := catalog.TournamentsOfGame(tournois, id)
 
 	// On remplit la page avec le jeu et ses tournois
 	donnees := JeuPage{Game: jeu, Tournaments: tournoisDuJeu}

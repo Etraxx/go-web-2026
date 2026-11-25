@@ -5,8 +5,34 @@ body {
   background-color: #1e1e2e;
   color: #f0f0f0;
   max-width: 800px;
-  margin: 40px auto;
+  margin: 0 auto;
   padding: 0 20px;
+  line-height: 1.5;
+}
+
+a {
+  color: #7ab8ff;
+}
+
+/* En-tête commun à toutes les pages */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  border-bottom: 1px solid #44445a;
+}
+
+header .logo {
+  color: #f5c542;
+  font-size: 1.5em;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* Contenu de la page */
+main {
+  padding: 20px 0 40px;
 }
 
 h1 {
@@ -16,6 +42,74 @@ h1 {
   padding-bottom: 10px;
 }
 
-a {
-  color: #7ab8ff;
+h2 {
+  color: #f5c542;
+  margin-top: 30px;
+}
+
+/* Liste des jeux */
+ul.jeux {
+  list-style: none;
+  padding: 0;
+}
+
+ul.jeux li {
+  padding: 8px 0;
+  border-bottom: 1px solid #33334a;
+}
+
+.annee {
+  color: #a0a0b0;
+}
+
+/* Formulaire et texte de recherche */
+.recherche input {
+  padding: 6px 10px;
+  border: 1px solid #44445a;
+  border-radius: 4px;
+}
+
+.recherche button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: #f5c542;
+  color: #1e1e2e;
+  cursor: pointer;
+}
+
+.recherche-texte {
+  font-style: italic;
+  color: #a0a0b0;
+}
+
+/* Fiche d'un jeu */
+ul.tournois li {
+  padding: 4px 0;
+}
+
+/* Page d'erreur */
+.erreur {
+  text-align: center;
+  padding: 30px 0;
+}
+
+.erreur .code {
+  font-size: 3em;
+  font-weight: bold;
+  color: #ff6b6b;
+  margin: 0;
+}
+
+.erreur h1 {
+  border-bottom: none;
+}
+
+/* Pied de page commun */
+footer {
+  border-top: 1px solid #44445a;
+  padding: 10px 0;
+  color: #a0a0b0;
+  font-size: 0.9em;
+  text-align: center;
 }

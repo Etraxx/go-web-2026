@@ -1,5 +1,15 @@
 {{template "header" .}}
     <h1>Les jeux</h1>
+
+    <form class="recherche" method="get" action="/jeux">
+      <input type="text" name="q" value="{{.Query}}" placeholder="Nom d'un jeu">
+      <button type="submit">Chercher</button>
+    </form>
+
+    {{if .Query}}
+    <p class="recherche-texte">Vous avez cherché : {{.Query}}</p>
+    {{end}}
+
     <ul class="jeux">
       {{range .Games}}
       <li><a href="/jeux/{{.ID}}">{{.Name}}</a> <span class="annee">({{.Year}})</span></li>

@@ -110,8 +110,11 @@ func listeJeux(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// On remplit la page avec les jeux
-	donnees := ListePage{Games: jeux}
+	// On lit ce que l'utilisateur a cherché (?q=...), seulement pour l'afficher
+	recherche := r.URL.Query().Get("q")
+
+	// On remplit la page avec les jeux et la recherche
+	donnees := ListePage{Games: jeux, Query: recherche}
 	afficherPage(w, "liste.html", donnees)
 }
 

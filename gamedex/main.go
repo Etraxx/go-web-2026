@@ -65,9 +65,9 @@ var client = &http.Client{Timeout: 3 * time.Second}
 // nombreDeJeux est le nombre de jeux dans la mini API.
 const nombreDeJeux = 12
 
-// tmpl contient tous les fichiers du dossier templates, lus une seule fois au démarrage.
+// tmpl contient tous les fichiers du dossier web/templates, lus une seule fois au démarrage.
 // GameDex doit donc être lancé depuis le dossier gamedex.
-var tmpl = template.Must(template.ParseGlob("templates/*.html"))
+var tmpl = template.Must(template.ParseGlob("web/templates/*.html"))
 
 func main() {
 	// Option -port pour choisir le port (8080 par défaut)
@@ -83,8 +83,8 @@ func main() {
 	// Toutes les autres adresses : notre page 404
 	mux.HandleFunc("GET /", pageIntrouvable)
 
-	// Les fichiers du dossier static (le CSS)
-	fs := http.FileServer(http.Dir("static"))
+	// Les fichiers du dossier web/static (le CSS)
+	fs := http.FileServer(http.Dir("web/static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
 	// Démarrage du serveur sur le port choisi

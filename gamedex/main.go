@@ -5,46 +5,26 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
+
+	"gamedex/internal/api"
 )
-
-// Game est un jeu, tel que la mini API le renvoie en JSON.
-type Game struct {
-	ID     int      `json:"id"`
-	Name   string   `json:"name"`
-	Year   int      `json:"year"`
-	Studio string   `json:"studio"`
-	Genres []string `json:"genres"`
-}
-
-// Tournament est un tournoi, tel que la mini API le renvoie en JSON.
-type Tournament struct {
-	ID     int     `json:"id"`
-	GameID int     `json:"gameId"`
-	Name   string  `json:"name"`
-	City   string  `json:"city"`
-	Date   string  `json:"date"`
-	Lat    float64 `json:"lat"`
-	Lng    float64 `json:"lng"`
-}
 
 // ListePage contient les données de la page liste.html.
 type ListePage struct {
-	Games []Game
+	Games []api.Game
 	Query string
 }
 
 // JeuPage contient les données de la page jeu.html.
 type JeuPage struct {
-	Game        Game
-	Tournaments []Tournament
+	Game        api.Game
+	Tournaments []api.Tournament
 }
 
 // ErreurPage contient les données de la page erreur.html.
@@ -55,12 +35,6 @@ type ErreurPage struct {
 
 // messageAPIIndisponible est le message montré quand la mini API ne répond pas correctement.
 const messageAPIIndisponible = "Le service de données est indisponible, réessayez plus tard"
-
-// adresseAPI est l'adresse de la mini API.
-const adresseAPI = "http://localhost:8081"
-
-// client fait les appels à l'API : il abandonne au bout de 3 secondes.
-var client = &http.Client{Timeout: 3 * time.Second}
 
 // nombreDeJeux est le nombre de jeux dans la mini API.
 const nombreDeJeux = 12
@@ -103,7 +77,7 @@ func accueil(w http.ResponseWriter, r *http.Request) {
 // listeJeux affiche tous les jeux de l'API avec le template liste.html.
 func listeJeux(w http.ResponseWriter, r *http.Request) {
 	// On demande les jeux à la mini API
-	jeux, err := FetchGames()
+	jeux, err := api.FetchGames()
 	if err != nil {
 		log.Println("FetchGames :", err)
 		afficherErreur(w, http.StatusBadGateway, messageAPIIndisponible)
@@ -136,13 +110,13 @@ func detailJeu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// On demande les jeux et les tournois à la mini API
-	jeux, err := FetchGames()
+	jeux, err := api.FetchGames()
 	if err != nil {
 		log.Println("FetchGames :", err)
 		afficherErreur(w, http.StatusBadGateway, messageAPIIndisponible)
 		return
 	}
-	tournois, err := FetchTournaments()
+	tournois, err := api.FetchTournaments()
 	if err != nil {
 		log.Println("FetchTournaments :", err)
 		afficherErreur(w, http.StatusBadGateway, messageAPIIndisponible)
@@ -151,7 +125,7 @@ func detailJeu(w http.ResponseWriter, r *http.Request) {
 
 	// On cherche le jeu qui a cet identifiant
 	trouve := false
-	var jeu Game
+	var jeu api.Game
 	for i := 0; i < len(jeux); i++ {
 		if jeux[i].ID == id {
 			jeu = jeux[i]
@@ -166,7 +140,7 @@ func detailJeu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// On garde seulement les tournois de ce jeu
-	var tournoisDuJeu []Tournament
+	var tournoisDuJeu []api.Tournament
 	for _, t := range tournois {
 		if t.GameID == id {
 			tournoisDuJeu = append(tournoisDuJeu, t)
@@ -181,43 +155,6 @@ func detailJeu(w http.ResponseWriter, r *http.Request) {
 // pageIntrouvable répond 404 pour toutes les adresses inconnues.
 func pageIntrouvable(w http.ResponseWriter, r *http.Request) {
 	afficherErreur(w, http.StatusNotFound, "Cette page n'existe pas.")
-}
-
-// FetchGames récupère la liste des jeux auprès de la mini API.
-func FetchGames() ([]Game, error) {
-	var jeux []Game
-	err := lireJSON("/api/games", &jeux)
-	return jeux, err
-}
-
-// FetchTournaments récupère la liste des tournois auprès de la mini API.
-func FetchTournaments() ([]Tournament, error) {
-	var tournois []Tournament
-	err := lireJSON("/api/tournaments", &tournois)
-	return tournois, err
-}
-
-// lireJSON appelle la mini API sur le chemin donné et range le JSON reçu dans donnees.
-// Elle n'affiche rien : en cas de problème, elle renvoie une erreur.
-func lireJSON(chemin string, donnees any) error {
-	// L'appel HTTP : erreur si l'API est éteinte ou trop lente
-	resp, err := client.Get(adresseAPI + chemin)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// err == nil ne suffit pas : il faut aussi vérifier le code de réponse
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("l'API a répondu %d", resp.StatusCode)
-	}
-
-	// On transforme le JSON reçu en données Go
-	err = json.NewDecoder(resp.Body).Decode(donnees)
-	if err != nil {
-		return fmt.Errorf("JSON illisible : %w", err)
-	}
-	return nil
 }
 
 // afficherPage remplit le template demandé avec les données et l'envoie au navigateur.

@@ -1,5 +1,5 @@
 // Package catalog contient les règles de GameDex : retrouver un jeu, relier les tournois à un jeu.
-// Il ne connaît ni HTTP, ni HTML, ni les templates.
+// Il ne connaît ni HTTP ni HTML : seulement les données de internal/api.
 package catalog
 
 import "gamedex/internal/api"

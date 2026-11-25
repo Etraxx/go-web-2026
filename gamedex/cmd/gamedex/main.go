@@ -1,6 +1,7 @@
-// GameDex : serveur web du cours (version temporaire pendant le rangement du mini TP 5).
+// GameDex : le point de départ du programme. main assemble les morceaux :
+// il charge les données une seule fois, puis lance le serveur.
 // Lancer d'abord la mini API (go run ./api depuis la racine du dépôt),
-// puis depuis le dossier gamedex : go run . (ou go run . -port 9090)
+// puis depuis le dossier gamedex : go run ./cmd/gamedex (ou go run ./cmd/gamedex -port 9090)
 package main
 
 import (
@@ -18,7 +19,8 @@ func main() {
 	port := flag.String("port", "8080", "port d'écoute")
 	flag.Parse()
 
-	// On charge les jeux et les tournois une seule fois
+	// On charge les jeux et les tournois une seule fois, au démarrage
+	// Si l'API ne répond pas, GameDex s'arrête tout de suite avec un message clair
 	jeux, err := api.FetchGames()
 	if err != nil {
 		log.Fatal("Impossible de charger les jeux : ", err)

@@ -1,0 +1,8 @@
+{{template "header" .}}
+    <div class="erreur">
+      <p class="code">Erreur {{.Code}}</p>
+      <h1>Oups, un problème est survenu</h1>
+      <p>{{.Message}}</p>
+      <p><a href="/">Retour à l'accueil</a></p>
+    </div>
+{{template "footer" .}}

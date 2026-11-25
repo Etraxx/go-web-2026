@@ -47,6 +47,15 @@ type JeuPage struct {
 	Tournaments []Tournament
 }
 
+// ErreurPage contient les données de la page erreur.html.
+type ErreurPage struct {
+	Code    int
+	Message string
+}
+
+// messageAPIIndisponible est le message montré quand la mini API ne répond pas correctement.
+const messageAPIIndisponible = "Le service de données est indisponible, réessayez plus tard"
+
 // adresseAPI est l'adresse de la mini API.
 const adresseAPI = "http://localhost:8081"
 
@@ -71,6 +80,9 @@ func main() {
 	mux.HandleFunc("GET /jeux", listeJeux)
 	mux.HandleFunc("GET /jeux/{id}", detailJeu)
 
+	// Toutes les autres adresses : notre page 404
+	mux.HandleFunc("GET /", pageIntrouvable)
+
 	// Les fichiers du dossier static (le CSS)
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
@@ -94,7 +106,7 @@ func listeJeux(w http.ResponseWriter, r *http.Request) {
 	jeux, err := FetchGames()
 	if err != nil {
 		log.Println("FetchGames :", err)
-		http.Error(w, "Le service de données est indisponible, réessayez plus tard", http.StatusBadGateway)
+		afficherErreur(w, http.StatusBadGateway, messageAPIIndisponible)
 		return
 	}
 
@@ -110,13 +122,13 @@ func detailJeu(w http.ResponseWriter, r *http.Request) {
 
 	// Pas un nombre, ou un nombre plus petit que 1 : requête invalide (400)
 	if err != nil || id < 1 {
-		http.Error(w, "identifiant invalide", http.StatusBadRequest)
+		afficherErreur(w, http.StatusBadRequest, "L'identifiant du jeu doit être un nombre plus grand que 0.")
 		return
 	}
 
 	// Il n'y a que 12 jeux : au-delà, le jeu n'existe pas (404)
 	if id > nombreDeJeux {
-		http.NotFound(w, r)
+		afficherErreur(w, http.StatusNotFound, "Ce jeu n'existe pas.")
 		return
 	}
 
@@ -124,13 +136,13 @@ func detailJeu(w http.ResponseWriter, r *http.Request) {
 	jeux, err := FetchGames()
 	if err != nil {
 		log.Println("FetchGames :", err)
-		http.Error(w, "Le service de données est indisponible, réessayez plus tard", http.StatusBadGateway)
+		afficherErreur(w, http.StatusBadGateway, messageAPIIndisponible)
 		return
 	}
 	tournois, err := FetchTournaments()
 	if err != nil {
 		log.Println("FetchTournaments :", err)
-		http.Error(w, "Le service de données est indisponible, réessayez plus tard", http.StatusBadGateway)
+		afficherErreur(w, http.StatusBadGateway, messageAPIIndisponible)
 		return
 	}
 
@@ -146,7 +158,7 @@ func detailJeu(w http.ResponseWriter, r *http.Request) {
 
 	// Le jeu n'est pas dans la liste : 404
 	if !trouve {
-		http.NotFound(w, r)
+		afficherErreur(w, http.StatusNotFound, "Ce jeu n'existe pas.")
 		return
 	}
 
@@ -161,6 +173,11 @@ func detailJeu(w http.ResponseWriter, r *http.Request) {
 	// On remplit la page avec le jeu et ses tournois
 	donnees := JeuPage{Game: jeu, Tournaments: tournoisDuJeu}
 	afficherPage(w, "jeu.html", donnees)
+}
+
+// pageIntrouvable répond 404 pour toutes les adresses inconnues.
+func pageIntrouvable(w http.ResponseWriter, r *http.Request) {
+	afficherErreur(w, http.StatusNotFound, "Cette page n'existe pas.")
 }
 
 // FetchGames récupère la liste des jeux auprès de la mini API.
@@ -207,5 +224,17 @@ func afficherPage(w http.ResponseWriter, nom string, donnees any) {
 	err := tmpl.ExecuteTemplate(w, nom, donnees)
 	if err != nil {
 		log.Println("erreur du template", nom, ":", err)
+	}
+}
+
+// afficherErreur envoie la page erreur.html avec le bon code HTTP.
+// Le code doit être écrit AVANT la page, sinon Go envoie 200.
+func afficherErreur(w http.ResponseWriter, code int, message string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(code)
+	donnees := ErreurPage{Code: code, Message: message}
+	err := tmpl.ExecuteTemplate(w, "erreur.html", donnees)
+	if err != nil {
+		log.Println("erreur du template erreur.html :", err)
 	}
 }

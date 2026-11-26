@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"gamedex/internal/api"
 	"gamedex/internal/catalog"
@@ -32,8 +33,14 @@ type ListePage struct {
 // JeuPage contient les données de la page jeu.html.
 type JeuPage struct {
 	Game        api.Game
-	Tournaments []api.Tournament
+	Tournaments []TournoiPage
 	Likes       int // le nombre de likes du jeu
+}
+
+// TournoiPage est un tournoi de la fiche, avec les pseudos de ses inscrits (bonus 2).
+type TournoiPage struct {
+	Tournament api.Tournament
+	Inscrits   []string
 }
 
 // ErreurPage contient les données de la page erreur.html.
@@ -53,6 +60,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /jeux", s.listeJeux)
 	mux.HandleFunc("GET /jeux/{id}", s.detailJeu)
 	mux.HandleFunc("POST /jeux/{id}/like", s.ajouterLike)
+	mux.HandleFunc("POST /tournois/{id}/inscription", s.inscrireTournoi)
 
 	// Toutes les autres adresses : notre page 404
 	mux.HandleFunc("GET /", s.pageIntrouvable)
@@ -110,10 +118,18 @@ func (s *Server) detailJeu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Pour chaque tournoi du jeu, on ajoute la liste de ses inscrits
+	tournois := catalog.TournamentsOfGame(s.Tournaments, jeu.ID)
+	tournoisPage := []TournoiPage{}
+	for i := 0; i < len(tournois); i++ {
+		t := TournoiPage{Tournament: tournois[i], Inscrits: store.Registrations(tournois[i].ID)}
+		tournoisPage = append(tournoisPage, t)
+	}
+
 	// On remplit la page avec le jeu, ses tournois et son nombre de likes
 	donnees := JeuPage{
 		Game:        jeu,
-		Tournaments: catalog.TournamentsOfGame(s.Tournaments, jeu.ID),
+		Tournaments: tournoisPage,
 		Likes:       store.Likes(jeu.ID),
 	}
 	afficherPage(w, "jeu.html", donnees)
@@ -132,6 +148,34 @@ func (s *Server) ajouterLike(w http.ResponseWriter, r *http.Request) {
 
 	// Redirection 303 vers la fiche (post / redirect / get) : un F5 ne refait pas le POST
 	http.Redirect(w, r, "/jeux/"+strconv.Itoa(jeu.ID), http.StatusSeeOther)
+}
+
+// inscrireTournoi enregistre un pseudo à un tournoi (formulaire POST), puis redirige vers la fiche du jeu.
+func (s *Server) inscrireTournoi(w http.ResponseWriter, r *http.Request) {
+	// On lit l'identifiant du tournoi : pas un nombre ou plus petit que 1 : 400
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		afficherErreur(w, http.StatusBadRequest, "L'identifiant du tournoi doit être un nombre plus grand que 0.")
+		return
+	}
+
+	// Le tournoi doit exister : sinon 404
+	tournoi, trouve := catalog.FindTournament(s.Tournaments, id)
+	if !trouve {
+		afficherErreur(w, http.StatusNotFound, "Ce tournoi n'existe pas.")
+		return
+	}
+
+	// Le pseudo ne doit pas être vide ni faire plus de 30 caractères : sinon 400
+	pseudo := strings.TrimSpace(r.FormValue("pseudo"))
+	if pseudo == "" || len([]rune(pseudo)) > 30 {
+		afficherErreur(w, http.StatusBadRequest, "Le pseudo doit faire entre 1 et 30 caractères.")
+		return
+	}
+
+	// On enregistre l'inscription, puis redirection 303 vers la fiche du jeu
+	store.Register(tournoi.ID, pseudo)
+	http.Redirect(w, r, "/jeux/"+strconv.Itoa(tournoi.GameID), http.StatusSeeOther)
 }
 
 // chercherJeu lit l'identifiant {id} de l'URL et retrouve le jeu.

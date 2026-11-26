@@ -17,7 +17,14 @@
     <h2>Tournois</h2>
     <ul class="tournois">
       {{range .Tournaments}}
-      <li>{{.Name}} · {{.City}} · {{.Date}}</li>
+      <li>
+        {{.Tournament.Name}} · {{.Tournament.City}} · {{.Tournament.Date}}
+        <p class="inscrits">{{len .Inscrits}} inscrit(s){{range .Inscrits}} · {{.}}{{end}}</p>
+        <form class="inscription" method="post" action="/tournois/{{.Tournament.ID}}/inscription">
+          <input type="text" name="pseudo" placeholder="Votre pseudo">
+          <button>S'inscrire</button>
+        </form>
+      </li>
       {{else}}
       <li>Aucun tournoi prévu</li>
       {{end}}

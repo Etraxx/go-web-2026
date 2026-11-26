@@ -20,6 +20,17 @@ func FindGame(games []api.Game, id int) (api.Game, bool) {
 	return api.Game{}, false
 }
 
+// FindTournament retrouve le tournoi qui a cet identifiant.
+// Le booléen vaut false si aucun tournoi n'a cet identifiant.
+func FindTournament(tournaments []api.Tournament, id int) (api.Tournament, bool) {
+	for i := 0; i < len(tournaments); i++ {
+		if tournaments[i].ID == id {
+			return tournaments[i], true
+		}
+	}
+	return api.Tournament{}, false
+}
+
 // TournamentsOfGame renvoie les tournois du jeu gameID.
 // S'il n'y en a aucun, la slice renvoyée est vide (et pas nil).
 func TournamentsOfGame(tournaments []api.Tournament, gameID int) []api.Tournament {

@@ -153,3 +153,70 @@ Je n'ai pas cliqué moi-même sur le bouton J'aime dans un vrai navigateur, ni a
 le navigateur avec curl (POST, puis le GET de la redirection), et j'ai seulement vu l'affichage du
 bouton et du formulaire dans des captures de Chrome en mode headless. Il faut encore faire le test à
 la main : cliquer sur J'aime, puis F5.
+
+## Bonus 1 : les plus likés en premier
+
+- Dans `internal/catalog`, `SortByLikes(games, likes)` trie les jeux par nombre de likes, du plus
+  grand au plus petit, avec `sort.SliceStable`. « Stable » veut dire qu'à égalité, l'ordre de l'API
+  est gardé.
+- `catalog` ne connaît pas `store` : c'est le handler `listeJeux` qui construit la map
+  (`likes[g.ID] = store.Likes(g.ID)`, avec une boucle), puis qui appelle `catalog.SortByLikes`.
+- Chaque jeu de la liste affiche « ♥ N » à côté de son nom (`{{index $.Likes .ID}}`).
+
+Test : j'ai donné 3 likes à Trackmania, 1 à Hollow Knight et 1 à Valorant.
+
+```
+/jeux      : Trackmania ♥3, Valorant ♥1, Hollow Knight ♥1, Celeste ♥0, Hades ♥0, Rocket League ♥0, ...
+/jeux?q=a  : Trackmania ♥3, Valorant ♥1, Hades ♥0, Rocket League ♥0, Stardew Valley ♥0, ...
+```
+
+Trackmania passe en premier. Valorant et Hollow Knight ont chacun 1 like : Valorant reste devant, comme
+dans l'ordre de l'API. Les jeux à 0 gardent aussi l'ordre de l'API. Avec une recherche, le tri
+s'applique au résultat renvoyé par la mini API. Les likes ne sont pas persistants : après un
+redémarrage, tout revient à ♥0.
+
+## Bonus 2 : inscription à un tournoi
+
+- `internal/store/inscriptions.go` suit le même modèle que les likes : une map
+  numéro du tournoi → pseudos, protégée par son propre mutex.
+  - `Register` n'ajoute pas un pseudo déjà inscrit.
+  - `Registrations` renvoie une **copie** de la liste (`make` + `copy`), pour que personne ne puisse
+    modifier la liste interne sans passer par le mutex.
+- `catalog.FindTournament` retrouve un tournoi par son numéro.
+- Route `POST /tournois/{id}/inscription` :
+  - id invalide : 400 ; tournoi inexistant : 404 ;
+  - pseudo (`strings.TrimSpace`) vide ou de plus de 30 caractères : 400, avec le message « Le pseudo
+    doit faire entre 1 et 30 caractères. » ;
+  - sinon : `store.Register`, puis redirection 303 vers la fiche du jeu du tournoi.
+- Sur la fiche, chaque tournoi affiche « N inscrit(s) · pseudo · pseudo », avec un petit formulaire
+  POST (champ `pseudo` et bouton « S'inscrire »). `JeuPage.Tournaments` est maintenant une slice de
+  `TournoiPage { Tournament ; Inscrits }`.
+
+Tests sur le tournoi 1 (Lyon Rocket Cup, jeu 3) :
+
+```
+$ curl -i --data-urlencode "pseudo=Etraxx" http://localhost:8080/tournois/1/inscription
+HTTP/1.1 303 See Other
+Location: /jeux/3
+fiche : 1 inscrit(s) · Etraxx
+```
+
+| Test | Résultat |
+| --- | --- |
+| même pseudo une 2e fois | toujours 1 inscrit |
+| `"  Etraxx  "` (espaces autour) | toujours 1 inscrit (les espaces sont enlevés) |
+| pseudo vide ou seulement des espaces | 400 |
+| pseudo de 31 caractères | 400 (30 caractères : 303) |
+| tournoi 9999 | 404 |
+| tournoi `abc` | 400 |
+| pseudo `<script>alert(1)</script>` | affiché `&lt;script&gt;alert(1)&lt;/script&gt;`, donc échappé par html/template |
+
+Un jeu sans tournoi (Hades) n'affiche aucun formulaire d'inscription, seulement « Aucun tournoi prévu ».
+
+Vérification finale : `gofmt -l .` n'affiche rien, `go vet ./...` et `go build ./...` passent, et
+`catalog` n'importe ni `net/http`, ni `html/template`, ni `store`. Dans le log de la mini API, seules
+les visites de `/jeux` arrivent : la fiche, le like et l'inscription n'appellent pas l'API.
+
+J'ai vu l'affichage des inscrits et des formulaires dans une capture de Chrome en mode headless, mais
+je n'ai pas rempli ni envoyé le formulaire d'inscription moi-même dans un vrai navigateur. Je l'ai
+seulement fait avec curl.

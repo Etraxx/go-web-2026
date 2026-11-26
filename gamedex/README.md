@@ -21,9 +21,11 @@ gamedex/
 ├── cmd/gamedex/main.go      charge les données une fois, lit -port, lance le serveur
 ├── internal/
 │   ├── api/api.go           parle à la mini API : structs, client à 3 s, FetchGames, FetchTournaments, SearchGames
-│   ├── catalog/catalog.go   les règles : FindGame, TournamentsOfGame, Genres
+│   ├── catalog/catalog.go   les règles : FindGame, FindTournament, TournamentsOfGame, Genres, SortByLikes
 │   ├── server/server.go     routes, handlers, templates, pages d'erreur
-│   └── store/likes.go       les likes, gardés en mémoire (map + mutex)
+│   └── store/               données gardées en mémoire (map + mutex)
+│       ├── likes.go         les likes des jeux
+│       └── inscriptions.go  les pseudos inscrits à chaque tournoi
 └── web/
     ├── templates/           header, footer, accueil, liste, jeu, erreur
     └── static/css/style.css
@@ -63,8 +65,8 @@ démarré, il garde les jeux et les tournois en mémoire : les fiches marchent m
 Seule la page `/jeux` interroge encore la mini API à chaque visite (c'est elle qui filtre) : si
 l'API ne répond pas, cette page affiche une erreur 502.
 
-Les **likes sont gardés en mémoire** (package `internal/store`) : ils disparaissent quand GameDex
-s'arrête. C'est une « fausse base de données ».
+Les **likes et les inscriptions sont gardés en mémoire** (package `internal/store`) : ils
+disparaissent quand GameDex s'arrête. C'est une « fausse base de données ».
 
 ## Les routes
 
@@ -72,9 +74,10 @@ s'arrête. C'est une « fausse base de données ».
 | --- | --- |
 | `GET /` | La page d'accueil |
 | `GET /jeux` | La liste des 12 jeux, chaque nom est un lien vers sa fiche |
-| `GET /jeux?q=...&genre=...` | Les jeux filtrés **par la mini API** (`/api/games?q=&genre=`) : `q` cherche dans le nom, `genre` doit correspondre exactement ; chaque filtre est facultatif |
-| `GET /jeux/{id}` | La fiche du jeu, ses tournois (nom, ville, date) et le bouton « ♥ J'aime (N) » |
+| `GET /jeux?q=...&genre=...` | Les jeux filtrés **par la mini API** (`/api/games?q=&genre=`) : `q` cherche dans le nom, `genre` doit correspondre exactement ; chaque filtre est facultatif. Les jeux les plus likés sont affichés en premier |
+| `GET /jeux/{id}` | La fiche du jeu, le bouton « ♥ J'aime (N) », ses tournois (nom, ville, date) avec leurs inscrits et un formulaire d'inscription |
 | `POST /jeux/{id}/like` | Ajoute un like au jeu, puis redirige (303) vers `/jeux/{id}` |
+| `POST /tournois/{id}/inscription` | Inscrit le pseudo (champ `pseudo`, 1 à 30 caractères) au tournoi, puis redirige (303) vers la fiche du jeu |
 | `GET /static/...` | Les fichiers du dossier `web/static/`, par exemple `/static/css/style.css` |
 | Toute autre adresse en GET | La page d'erreur avec le code 404 |
 
@@ -83,7 +86,8 @@ Les codes d'erreur, tous affichés avec `web/templates/erreur.html` :
 | Cas | Code |
 | --- | --- |
 | Identifiant qui n'est pas un nombre ou plus petit que 1 (`/jeux/abc`, `/jeux/0`) | 400 |
-| Jeu inexistant (`/jeux/999`, `POST /jeux/999/like`) ou adresse inconnue | 404 |
+| Pseudo vide ou de plus de 30 caractères | 400 |
+| Jeu ou tournoi inexistant (`/jeux/999`, `POST /jeux/999/like`, `POST /tournois/9999/inscription`) ou adresse inconnue | 404 |
 | Mini API qui ne répond pas pendant une recherche sur `/jeux` | 502 |
 
 Une autre méthode que GET sur une route existante (par exemple `POST /jeux`) répond 405.

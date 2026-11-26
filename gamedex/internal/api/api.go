@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -47,6 +48,19 @@ func FetchTournaments() ([]Tournament, error) {
 	var tournois []Tournament
 	err := lireJSON("/api/tournaments", &tournois)
 	return tournois, err
+}
+
+// SearchGames demande à la mini API les jeux filtrés par nom (q) et par genre.
+// C'est la mini API qui filtre ; elle ignore les paramètres vides (sans filtre : les 12 jeux).
+func SearchGames(q, genre string) ([]Game, error) {
+	// url.Values encode les paramètres (les accents, les espaces...)
+	params := url.Values{}
+	params.Set("q", q)
+	params.Set("genre", genre)
+
+	var jeux []Game
+	err := lireJSON("/api/games?"+params.Encode(), &jeux)
+	return jeux, err
 }
 
 // lireJSON appelle la mini API sur le chemin donné et range le JSON reçu dans donnees.

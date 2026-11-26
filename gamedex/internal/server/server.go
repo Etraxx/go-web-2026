@@ -1,5 +1,6 @@
 // Package server contient le site web : routes, handlers, templates et pages d'erreur.
-// Il n'appelle jamais la mini API : il travaille avec les données déjà chargées en mémoire.
+// Il travaille avec les données chargées en mémoire au démarrage ; seule la recherche
+// de /jeux est transmise à la mini API.
 package server
 
 import (
@@ -64,15 +65,24 @@ func (s *Server) accueil(w http.ResponseWriter, r *http.Request) {
 	afficherPage(w, "accueil.html", nil)
 }
 
-// listeJeux affiche tous les jeux avec le template liste.html.
+// listeJeux affiche les jeux avec le template liste.html, filtrés par ?q= et ?genre=.
+// C'est la mini API qui filtre : c'est le seul appel à l'API après le démarrage.
 func (s *Server) listeJeux(w http.ResponseWriter, r *http.Request) {
-	// On lit la recherche et le genre dans l'URL (pour l'instant, seulement pour les afficher)
+	// On lit la recherche et le genre dans l'URL
 	recherche := r.URL.Query().Get("q")
 	genre := r.URL.Query().Get("genre")
 
+	// On transmet la recherche et le genre à la mini API
+	jeux, err := api.SearchGames(recherche, genre)
+	if err != nil {
+		log.Println(err)
+		afficherErreur(w, http.StatusBadGateway, "Le service des jeux ne répond pas.")
+		return
+	}
+
 	// On remplit la page (les genres viennent de tous les jeux chargés au démarrage)
 	donnees := ListePage{
-		Games:  s.Games,
+		Games:  jeux,
 		Genres: catalog.Genres(s.Games),
 		Genre:  genre,
 		Query:  recherche,

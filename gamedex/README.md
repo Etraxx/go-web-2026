@@ -20,17 +20,19 @@ gamedex/
 ├── go.mod                   module « gamedex »
 ├── cmd/gamedex/main.go      charge les données une fois, lit -port, lance le serveur
 ├── internal/
-│   ├── api/api.go           parle à la mini API : structs, client à 3 s, FetchGames, FetchTournaments
-│   ├── catalog/catalog.go   les règles : FindGame, TournamentsOfGame
-│   └── server/server.go     routes, handlers, templates, pages d'erreur
+│   ├── api/api.go           parle à la mini API : structs, client à 3 s, FetchGames, FetchTournaments, SearchGames
+│   ├── catalog/catalog.go   les règles : FindGame, TournamentsOfGame, Genres
+│   ├── server/server.go     routes, handlers, templates, pages d'erreur
+│   └── store/likes.go       les likes, gardés en mémoire (map + mutex)
 └── web/
     ├── templates/           header, footer, accueil, liste, jeu, erreur
     └── static/css/style.css
 ```
 
 Qui a le droit de connaître qui : `cmd` utilise `api` et `server`, `server` utilise `catalog` et les
-types de `api`, `catalog` utilise seulement les types de `api`. `server` n'appelle jamais la mini API,
-et `catalog` ne connaît ni HTTP ni HTML.
+types de `api` et `store`, `catalog` utilise seulement les types de `api`, et `store` ne connaît que
+`sync`. `catalog` ne connaît ni HTTP, ni HTML, ni `store`. Après le démarrage, le seul appel à la mini
+API est la recherche de `/jeux` (`api.SearchGames`).
 
 ## Lancer GameDex
 
@@ -57,7 +59,12 @@ go run ./cmd/gamedex -port 9090
 
 Si la mini API ne répond pas au démarrage (éteinte, trop lente, erreur, JSON illisible), GameDex
 s'arrête tout de suite avec un message comme « Impossible de charger les jeux : ... ». Une fois
-démarré, il garde les données en mémoire et ne dépend plus de l'API.
+démarré, il garde les jeux et les tournois en mémoire : les fiches marchent même si l'API s'arrête.
+Seule la page `/jeux` interroge encore la mini API à chaque visite (c'est elle qui filtre) : si
+l'API ne répond pas, cette page affiche une erreur 502.
+
+Les **likes sont gardés en mémoire** (package `internal/store`) : ils disparaissent quand GameDex
+s'arrête. C'est une « fausse base de données ».
 
 ## Les routes
 
@@ -65,8 +72,9 @@ démarré, il garde les données en mémoire et ne dépend plus de l'API.
 | --- | --- |
 | `GET /` | La page d'accueil |
 | `GET /jeux` | La liste des 12 jeux, chaque nom est un lien vers sa fiche |
-| `GET /jeux?q=...` | La même liste, avec « Vous avez cherché : ... » au-dessus (pas encore de filtre) |
-| `GET /jeux/{id}` | La fiche du jeu et ses tournois (nom, ville, date) |
+| `GET /jeux?q=...&genre=...` | Les jeux filtrés **par la mini API** (`/api/games?q=&genre=`) : `q` cherche dans le nom, `genre` doit correspondre exactement ; chaque filtre est facultatif |
+| `GET /jeux/{id}` | La fiche du jeu, ses tournois (nom, ville, date) et le bouton « ♥ J'aime (N) » |
+| `POST /jeux/{id}/like` | Ajoute un like au jeu, puis redirige (303) vers `/jeux/{id}` |
 | `GET /static/...` | Les fichiers du dossier `web/static/`, par exemple `/static/css/style.css` |
 | Toute autre adresse en GET | La page d'erreur avec le code 404 |
 
@@ -75,6 +83,7 @@ Les codes d'erreur, tous affichés avec `web/templates/erreur.html` :
 | Cas | Code |
 | --- | --- |
 | Identifiant qui n'est pas un nombre ou plus petit que 1 (`/jeux/abc`, `/jeux/0`) | 400 |
-| Jeu inexistant (`/jeux/999`) ou adresse inconnue | 404 |
+| Jeu inexistant (`/jeux/999`, `POST /jeux/999/like`) ou adresse inconnue | 404 |
+| Mini API qui ne répond pas pendant une recherche sur `/jeux` | 502 |
 
 Une autre méthode que GET sur une route existante (par exemple `POST /jeux`) répond 405.

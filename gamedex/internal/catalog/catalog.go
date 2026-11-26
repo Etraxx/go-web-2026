@@ -1,5 +1,5 @@
 // Package catalog contient les règles de GameDex : retrouver un jeu, relier les tournois à un jeu,
-// lister les genres.
+// lister les genres, trier par likes.
 // Il ne connaît ni HTTP ni HTML : seulement les données de internal/api.
 package catalog
 
@@ -48,4 +48,13 @@ func Genres(games []api.Game) []string {
 	}
 	sort.Strings(genres)
 	return genres
+}
+
+// SortByLikes trie les jeux du plus liké au moins liké.
+// likes donne le nombre de likes de chaque jeu (clé = numéro du jeu).
+// sort.SliceStable garde l'ordre de l'API pour les jeux qui ont autant de likes.
+func SortByLikes(games []api.Game, likes map[int]int) {
+	sort.SliceStable(games, func(i, j int) bool {
+		return likes[games[i].ID] > likes[games[j].ID]
+	})
 }

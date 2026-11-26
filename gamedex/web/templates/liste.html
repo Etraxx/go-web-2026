@@ -20,7 +20,7 @@
 
     <ul class="jeux">
       {{range .Games}}
-      <li><a href="/jeux/{{.ID}}">{{.Name}}</a> <span class="annee">({{.Year}})</span></li>
+      <li><a href="/jeux/{{.ID}}">{{.Name}}</a> <span class="annee">({{.Year}})</span> <span class="likes">♥ {{index $.Likes .ID}}</span></li>
       {{else}}
       <li>Aucun jeu ne correspond.</li>
       {{end}}

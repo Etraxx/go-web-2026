@@ -22,10 +22,11 @@ type Server struct {
 
 // ListePage contient les données de la page liste.html.
 type ListePage struct {
-	Games  []api.Game // les jeux à afficher
-	Genres []string   // tous les genres, pour la liste déroulante
-	Genre  string     // le genre choisi
-	Query  string     // ce que l'utilisateur a cherché
+	Games  []api.Game  // les jeux à afficher
+	Genres []string    // tous les genres, pour la liste déroulante
+	Genre  string      // le genre choisi
+	Query  string      // ce que l'utilisateur a cherché
+	Likes  map[int]int // le nombre de likes de chaque jeu (bonus 1)
 }
 
 // JeuPage contient les données de la page jeu.html.
@@ -83,12 +84,20 @@ func (s *Server) listeJeux(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// On lit les likes de chaque jeu, puis catalog trie les jeux (les plus likés en premier)
+	likes := map[int]int{}
+	for i := 0; i < len(jeux); i++ {
+		likes[jeux[i].ID] = store.Likes(jeux[i].ID)
+	}
+	catalog.SortByLikes(jeux, likes)
+
 	// On remplit la page (les genres viennent de tous les jeux chargés au démarrage)
 	donnees := ListePage{
 		Games:  jeux,
 		Genres: catalog.Genres(s.Games),
 		Genre:  genre,
 		Query:  recherche,
+		Likes:  likes,
 	}
 	afficherPage(w, "liste.html", donnees)
 }

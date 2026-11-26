@@ -147,3 +147,9 @@ footer {
   font-size: 1em;
   cursor: pointer;
 }
+
+/* Nombre de likes à côté de chaque jeu de la liste */
+.likes {
+  color: #ff6b6b;
+  font-size: 0.9em;
+}

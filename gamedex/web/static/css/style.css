@@ -62,25 +62,48 @@ ul.jeux li {
   color: #a0a0b0;
 }
 
-/* Formulaire et texte de recherche */
-.recherche input {
+/* Formulaire de filtre : champs alignés sur une ligne */
+.filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.filtres input,
+.filtres select {
   padding: 6px 10px;
   border: 1px solid #44445a;
   border-radius: 4px;
+  background-color: #2a2a3c;
+  color: #f0f0f0;
+  font-size: 1em;
 }
 
-.recherche button {
-  padding: 6px 12px;
+.filtres input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.filtres button {
+  padding: 6px 14px;
   border: none;
   border-radius: 4px;
   background-color: #f5c542;
   color: #1e1e2e;
+  font-weight: bold;
   cursor: pointer;
 }
 
+/* Texte de recherche et nombre de résultats */
 .recherche-texte {
   font-style: italic;
   color: #a0a0b0;
+}
+
+.nombre {
+  color: #a0a0b0;
+  margin-bottom: 0;
 }
 
 /* Fiche d'un jeu */

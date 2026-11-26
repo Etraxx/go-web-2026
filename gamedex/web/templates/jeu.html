@@ -2,6 +2,11 @@
     <h1>{{.Game.Name}}</h1>
     <p><strong>Année :</strong> {{.Game.Year}}</p>
     <p><strong>Studio :</strong> {{.Game.Studio}}</p>
+
+    <form class="like" method="post" action="/jeux/{{.Game.ID}}/like">
+      <button>♥ J'aime ({{.Likes}})</button>
+    </form>
+
     <p><strong>Genres :</strong></p>
     <ul class="genres">
       {{range .Game.Genres}}

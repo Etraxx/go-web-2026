@@ -11,6 +11,7 @@ import (
 
 	"gamedex/internal/api"
 	"gamedex/internal/catalog"
+	"gamedex/internal/store"
 )
 
 // Server contient les jeux et les tournois chargés une seule fois au démarrage.
@@ -31,6 +32,7 @@ type ListePage struct {
 type JeuPage struct {
 	Game        api.Game
 	Tournaments []api.Tournament
+	Likes       int // le nombre de likes du jeu
 }
 
 // ErreurPage contient les données de la page erreur.html.
@@ -49,6 +51,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /{$}", s.accueil)
 	mux.HandleFunc("GET /jeux", s.listeJeux)
 	mux.HandleFunc("GET /jeux/{id}", s.detailJeu)
+	mux.HandleFunc("POST /jeux/{id}/like", s.ajouterLike)
 
 	// Toutes les autres adresses : notre page 404
 	mux.HandleFunc("GET /", s.pageIntrouvable)
@@ -92,25 +95,55 @@ func (s *Server) listeJeux(w http.ResponseWriter, r *http.Request) {
 
 // detailJeu affiche la fiche d'un jeu à partir de son identifiant.
 func (s *Server) detailJeu(w http.ResponseWriter, r *http.Request) {
+	// On lit et on vérifie l'identifiant (400 ou 404 si problème)
+	jeu, ok := s.chercherJeu(w, r)
+	if !ok {
+		return
+	}
+
+	// On remplit la page avec le jeu, ses tournois et son nombre de likes
+	donnees := JeuPage{
+		Game:        jeu,
+		Tournaments: catalog.TournamentsOfGame(s.Tournaments, jeu.ID),
+		Likes:       store.Likes(jeu.ID),
+	}
+	afficherPage(w, "jeu.html", donnees)
+}
+
+// ajouterLike enregistre un like (formulaire POST), puis redirige vers la fiche du jeu.
+func (s *Server) ajouterLike(w http.ResponseWriter, r *http.Request) {
+	// On lit et on vérifie l'identifiant (400 ou 404 si problème)
+	jeu, ok := s.chercherJeu(w, r)
+	if !ok {
+		return
+	}
+
+	// On ajoute le like dans la « base » en mémoire
+	store.AddLike(jeu.ID)
+
+	// Redirection 303 vers la fiche (post / redirect / get) : un F5 ne refait pas le POST
+	http.Redirect(w, r, "/jeux/"+strconv.Itoa(jeu.ID), http.StatusSeeOther)
+}
+
+// chercherJeu lit l'identifiant {id} de l'URL et retrouve le jeu.
+// En cas de problème, elle affiche la page d'erreur (400 ou 404) et renvoie false.
+func (s *Server) chercherJeu(w http.ResponseWriter, r *http.Request) (api.Game, bool) {
 	// On lit l'identifiant dans l'URL et on le transforme en nombre
 	id, err := strconv.Atoi(r.PathValue("id"))
 
 	// Pas un nombre, ou un nombre plus petit que 1 : requête invalide (400)
 	if err != nil || id < 1 {
 		afficherErreur(w, http.StatusBadRequest, "L'identifiant du jeu doit être un nombre plus grand que 0.")
-		return
+		return api.Game{}, false
 	}
 
 	// On cherche le jeu qui a cet identifiant : s'il n'existe pas, 404
 	jeu, trouve := catalog.FindGame(s.Games, id)
 	if !trouve {
 		afficherErreur(w, http.StatusNotFound, "Ce jeu n'existe pas.")
-		return
+		return api.Game{}, false
 	}
-
-	// On remplit la page avec le jeu et ses tournois
-	donnees := JeuPage{Game: jeu, Tournaments: catalog.TournamentsOfGame(s.Tournaments, id)}
-	afficherPage(w, "jeu.html", donnees)
+	return jeu, true
 }
 
 // pageIntrouvable répond 404 pour toutes les adresses inconnues.

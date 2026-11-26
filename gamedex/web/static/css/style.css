@@ -136,3 +136,14 @@ footer {
   font-size: 0.9em;
   text-align: center;
 }
+
+/* Bouton J'aime de la fiche d'un jeu */
+.like button {
+  padding: 6px 14px;
+  border: 1px solid #ff6b6b;
+  border-radius: 4px;
+  background-color: transparent;
+  color: #ff6b6b;
+  font-size: 1em;
+  cursor: pointer;
+}

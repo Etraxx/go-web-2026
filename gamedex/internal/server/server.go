@@ -20,8 +20,10 @@ type Server struct {
 
 // ListePage contient les données de la page liste.html.
 type ListePage struct {
-	Games []api.Game
-	Query string
+	Games  []api.Game // les jeux à afficher
+	Genres []string   // tous les genres, pour la liste déroulante
+	Genre  string     // le genre choisi
+	Query  string     // ce que l'utilisateur a cherché
 }
 
 // JeuPage contient les données de la page jeu.html.
@@ -64,11 +66,17 @@ func (s *Server) accueil(w http.ResponseWriter, r *http.Request) {
 
 // listeJeux affiche tous les jeux avec le template liste.html.
 func (s *Server) listeJeux(w http.ResponseWriter, r *http.Request) {
-	// On lit ce que l'utilisateur a cherché (?q=...), seulement pour l'afficher
+	// On lit la recherche et le genre dans l'URL (pour l'instant, seulement pour les afficher)
 	recherche := r.URL.Query().Get("q")
+	genre := r.URL.Query().Get("genre")
 
-	// On remplit la page avec les jeux et la recherche
-	donnees := ListePage{Games: s.Games, Query: recherche}
+	// On remplit la page (les genres viennent de tous les jeux chargés au démarrage)
+	donnees := ListePage{
+		Games:  s.Games,
+		Genres: catalog.Genres(s.Games),
+		Genre:  genre,
+		Query:  recherche,
+	}
 	afficherPage(w, "liste.html", donnees)
 }
 

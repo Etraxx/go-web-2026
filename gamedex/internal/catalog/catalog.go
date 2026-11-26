@@ -1,8 +1,13 @@
-// Package catalog contient les règles de GameDex : retrouver un jeu, relier les tournois à un jeu.
+// Package catalog contient les règles de GameDex : retrouver un jeu, relier les tournois à un jeu,
+// lister les genres.
 // Il ne connaît ni HTTP ni HTML : seulement les données de internal/api.
 package catalog
 
-import "gamedex/internal/api"
+import (
+	"sort"
+
+	"gamedex/internal/api"
+)
 
 // FindGame retrouve le jeu qui a cet identifiant.
 // Le booléen vaut false si aucun jeu n'a cet identifiant.
@@ -25,4 +30,22 @@ func TournamentsOfGame(tournaments []api.Tournament, gameID int) []api.Tournamen
 		}
 	}
 	return tournois
+}
+
+// Genres renvoie tous les genres des jeux, sans doublon, triés par ordre alphabétique.
+func Genres(games []api.Game) []string {
+	// La map sert à savoir si on a déjà vu un genre
+	dejaVu := map[string]bool{}
+	genres := []string{}
+	for i := 0; i < len(games); i++ {
+		for j := 0; j < len(games[i].Genres); j++ {
+			genre := games[i].Genres[j]
+			if !dejaVu[genre] {
+				dejaVu[genre] = true
+				genres = append(genres, genre)
+			}
+		}
+	}
+	sort.Strings(genres)
+	return genres
 }

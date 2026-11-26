@@ -1,18 +1,28 @@
 {{template "header" .}}
     <h1>Les jeux</h1>
 
-    <form class="recherche" method="get" action="/jeux">
-      <input type="text" name="q" value="{{.Query}}" placeholder="Nom d'un jeu">
-      <button type="submit">Chercher</button>
+    <form class="filtres" method="get" action="/jeux">
+      <input type="search" name="q" value="{{.Query}}" placeholder="Rechercher">
+      <select name="genre">
+        <option value="">Tous les genres</option>
+        {{range .Genres}}
+          <option value="{{.}}" {{if eq . $.Genre}}selected{{end}}>{{.}}</option>
+        {{end}}
+      </select>
+      <button>Filtrer</button>
     </form>
 
     {{if .Query}}
     <p class="recherche-texte">Vous avez cherché : {{.Query}}</p>
     {{end}}
 
+    <p class="nombre">{{len .Games}} jeu(x) trouvé(s)</p>
+
     <ul class="jeux">
       {{range .Games}}
       <li><a href="/jeux/{{.ID}}">{{.Name}}</a> <span class="annee">({{.Year}})</span></li>
+      {{else}}
+      <li>Aucun jeu ne correspond.</li>
       {{end}}
     </ul>
 {{template "footer" .}}
